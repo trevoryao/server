@@ -1276,13 +1276,16 @@ class InferHandler : public HandlerBase {
     State* state_;
     std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
         shm_regions_info_;
+    std::shared_ptr<SharedMemoryManager> shm_manager_;
 
     ResponseReleasePayload(
         State* state,
         std::list<
             std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>&&
-            shm_regions_info)
-        : state_(state), shm_regions_info_(std::move(shm_regions_info))
+            shm_regions_info,
+        const std::shared_ptr<SharedMemoryManager>& shm_manager)
+        : state_(state), shm_regions_info_(std::move(shm_regions_info)),
+          shm_manager_(shm_manager)
     {
     }
 
@@ -1291,15 +1294,18 @@ class InferHandler : public HandlerBase {
       auto it = shm_regions_info_.begin();
       while (it != shm_regions_info_.end()) {
         auto shm_info = std::move(*it);
-        // Erase the current iterator and get the next iterator
         it = shm_regions_info_.erase(it);
 
         // Check if the shared memory info is marked for unregistration
         if (shm_info->IsMarkedForUnregistration()) {
           std::cerr << "============= Found shm - " << shm_info->GetName()
                     << " marked for Unregistration !! ============\n";
-          LOG_IF_ERROR(shm_manager_->Unregister(
-              shm_info->GetName(), shm_info->GetMemoryType()));
+          auto err = shm_manager_->Unregister(
+              shm_info->GetName(), shm_info->GetMemoryType());
+          if (err != nullptr) {
+            std::cerr << "+++++++++++++ Faild to unregister shm - "
+                      << shm_info->GetName() << " !! ++++++++++++\n";
+          }
         }
       }
     }

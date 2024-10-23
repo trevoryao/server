@@ -291,8 +291,12 @@ class HTTPAPIServer : public HTTPServer {
         if (shm_info->IsMarkedForUnregistration()) {
           std::cerr << "============= Found shm - " << shm_info->GetName()
                     << " marked for Unregistration !! ============\n";
-          LOG_IF_ERROR(shm_manager_->Unregister(
-              shm_info->GetName(), shm_info->GetMemoryType()));
+          auto err = shm_manager_->Unregister(
+              shm_info->GetName(), shm_info->GetMemoryType());
+          if (err != nullptr) {
+            std::cerr << "+++++++++++++ Faild to unregister shm - "
+                      << shm_info->GetName() << " !! ++++++++++++\n";
+          }
         }
       }
     }
