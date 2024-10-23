@@ -300,7 +300,7 @@ InferAllocatorPayload(
     std::list<std::string>&& serialized_data,
     std::shared_ptr<ResponseQueue<ResponseType>> response_queue,
     AllocPayload<ResponseType>* alloc_payload,
-    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
+    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
         shm_regions_info)
 {
   alloc_payload->response_queue_ = response_queue;
@@ -379,7 +379,7 @@ TRITONSERVER_Error* InferGRPCToInput(
     const inference::ModelInferRequest& request,
     std::list<std::string>* serialized_data,
     TRITONSERVER_InferenceRequest* inference_request,
-    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
+    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
         shm_regions_info);
 
 TRITONSERVER_Error* ResponseAllocatorHelper(
@@ -1274,16 +1274,34 @@ class InferHandler : public HandlerBase {
   // response release callback.
   struct ResponseReleasePayload final {
     State* state_;
-    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
+    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
         shm_regions_info_;
 
     ResponseReleasePayload(
         State* state,
-        std::vector<
+        std::list<
             std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>&&
             shm_regions_info)
         : state_(state), shm_regions_info_(std::move(shm_regions_info))
     {
+    }
+
+    ~ResponseReleasePayload()
+    {
+      auto it = shm_regions_info_.begin();
+      while (it != shm_regions_info_.end()) {
+        auto shm_info = std::move(*it);
+        // Erase the current iterator and get the next iterator
+        it = shm_regions_info_.erase(it);
+
+        // Check if the shared memory info is marked for unregistration
+        if (shm_info->IsMarkedForUnregistration()) {
+          std::cerr << "============= Found shm - " << shm_info->GetName()
+                    << " marked for Unregistration !! ============\n";
+          LOG_IF_ERROR(shm_manager_->Unregister(
+              shm_info->GetName(), shm_info->GetMemoryType()));
+        }
+      }
     }
   };
 

@@ -26,6 +26,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -50,9 +51,10 @@ class SharedMemoryManager {
   SharedMemoryManager() = default;
   ~SharedMemoryManager();
 
-  /// A struct that records the shared memory regions registered by the shared
+  /// A class that records the shared memory regions registered by the shared
   /// memory manager.
-  struct SharedMemoryInfo {
+  class SharedMemoryInfo {
+   public:
     SharedMemoryInfo(
         const std::string& name, const std::string& shm_key,
         const size_t offset, const size_t byte_size, int shm_fd,
@@ -60,10 +62,24 @@ class SharedMemoryManager {
         const int64_t device_id)
         : name_(name), shm_key_(shm_key), offset_(offset),
           byte_size_(byte_size), shm_fd_(shm_fd), mapped_addr_(mapped_addr),
-          kind_(kind), device_id_(device_id)
+          kind_(kind), device_id_(device_id), marked_for_unregistration_(false)
     {
     }
 
+    ~SharedMemoryInfo()
+    {
+      std::cerr << "********* " << name_
+                << ": destructor ~SharedMemoryInfo() called !! **********\n";
+    }
+
+    std::string GetName() const { return name_; }
+    TRITONSERVER_MemoryType GetMemoryType() const { return kind_; }
+    bool IsMarkedForUnregistration() const
+    {
+      return marked_for_unregistration_;
+    }
+
+   private:
     std::string name_;
     std::string shm_key_;
     size_t offset_;
@@ -72,6 +88,9 @@ class SharedMemoryManager {
     void* mapped_addr_;
     TRITONSERVER_MemoryType kind_;
     int64_t device_id_;
+    bool marked_for_unregistration_;
+
+    friend class SharedMemoryManager;
   };
 
 #ifdef TRITON_ENABLE_GPU
