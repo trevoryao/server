@@ -1292,10 +1292,10 @@ class InferHandler : public HandlerBase {
     ~ResponseReleasePayload()
     {
       while (!shm_regions_info_.empty()) {
-        auto shm_name = shm_regions_info_.back()->GetName();
-        auto shm_memory_type = shm_regions_info_.back()->GetMemoryType();
+        auto shm_name = shm_regions_info_.back()->name_;
+        auto shm_memory_type = shm_regions_info_.back()->kind_;
         auto marked_for_unregistration =
-            shm_regions_info_.back()->IsMarkedForUnregistration();
+            shm_regions_info_.back()->marked_for_unregistration_;
 
         shm_regions_info_.pop_back();
 
@@ -1305,6 +1305,9 @@ class InferHandler : public HandlerBase {
           auto err = shm_manager_->Unregister(shm_name, shm_memory_type);
           if (err != nullptr) {
             std::cerr << "+++++++++++++ Failed to unregister shm - " << shm_name
+                      << " !! ++++++++++++\n";
+          } else {
+            std::cerr << "+++++++++++++ SUCCESS to unregister shm - " << shm_name
                       << " !! ++++++++++++\n";
           }
         }

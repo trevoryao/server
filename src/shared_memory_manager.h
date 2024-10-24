@@ -51,10 +51,9 @@ class SharedMemoryManager {
   SharedMemoryManager() = default;
   ~SharedMemoryManager();
 
-  /// A class that records the shared memory regions registered by the shared
+  /// A struct that records the shared memory regions registered by the shared
   /// memory manager.
-  class SharedMemoryInfo {
-   public:
+  struct SharedMemoryInfo {
     SharedMemoryInfo(
         const std::string& name, const std::string& shm_key,
         const size_t offset, const size_t byte_size, int shm_fd,
@@ -72,14 +71,6 @@ class SharedMemoryManager {
                 << ": destructor ~SharedMemoryInfo() called !! **********\n";
     }
 
-    std::string GetName() const { return name_; }
-    TRITONSERVER_MemoryType GetMemoryType() const { return kind_; }
-    bool IsMarkedForUnregistration() const
-    {
-      return marked_for_unregistration_;
-    }
-
-   private:
     std::string name_;
     std::string shm_key_;
     size_t offset_;
@@ -89,8 +80,6 @@ class SharedMemoryManager {
     TRITONSERVER_MemoryType kind_;
     int64_t device_id_;
     bool marked_for_unregistration_;
-
-    friend class SharedMemoryManager;
   };
 
 #ifdef TRITON_ENABLE_GPU
