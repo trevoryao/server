@@ -687,7 +687,7 @@ SharedMemoryManager::UnregisterHelper(
   // Must hold the lock on register_mu_ while calling this function.
   auto it = shared_memory_map_.find(name);
   if (it != shared_memory_map_.end() && it->second->kind_ == memory_type) {
-    if (it->second.use_count() > 1 && !it->second->marked_for_unregistration_) {
+    if (it->second.use_count() > 1) {
       it->second->marked_for_unregistration_ = true;
       std::cerr << ("Shared memory region '" + name +
                     "' will be unregistered after in-flight requests complete.")

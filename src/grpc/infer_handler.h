@@ -93,7 +93,7 @@ class Barrier {
 struct RequestReleasePayload final {
   explicit RequestReleasePayload(
       const std::shared_ptr<TRITONSERVER_InferenceRequest>& inference_request)
-      : inference_request_(inference_request){};
+      : inference_request_(inference_request) {};
 
  private:
   std::shared_ptr<TRITONSERVER_InferenceRequest> inference_request_ = nullptr;
@@ -1293,18 +1293,19 @@ class InferHandler : public HandlerBase {
     {
       auto it = shm_regions_info_.begin();
       while (it != shm_regions_info_.end()) {
-        auto shm_info = std::move(*it);
+        auto shm_name = (*it)->GetName();
+        auto shm_memory_type = (*it)->GetMemoryType();
+        auto marked_for_unregistration = (*it)->IsMarkedForUnregistration();
         it = shm_regions_info_.erase(it);
 
         // Check if the shared memory info is marked for unregistration
-        if (shm_info->IsMarkedForUnregistration()) {
-          std::cerr << "============= Found shm - " << shm_info->GetName()
+        if (marked_for_unregistration) {
+          std::cerr << "============= Found shm - " << shm_name
                     << " marked for Unregistration !! ============\n";
-          auto err = shm_manager_->Unregister(
-              shm_info->GetName(), shm_info->GetMemoryType());
+          auto err = shm_manager_->Unregister(shm_name, shm_memory_type);
           if (err != nullptr) {
-            std::cerr << "+++++++++++++ Faild to unregister shm - "
-                      << shm_info->GetName() << " !! ++++++++++++\n";
+            std::cerr << "+++++++++++++ Faild to unregister shm - " << shm_name
+                      << " !! ++++++++++++\n";
           }
         }
       }
