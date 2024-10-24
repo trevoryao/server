@@ -300,7 +300,7 @@ InferAllocatorPayload(
     std::list<std::string>&& serialized_data,
     std::shared_ptr<ResponseQueue<ResponseType>> response_queue,
     AllocPayload<ResponseType>* alloc_payload,
-    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
+    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
         shm_regions_info)
 {
   alloc_payload->response_queue_ = response_queue;
@@ -379,7 +379,7 @@ TRITONSERVER_Error* InferGRPCToInput(
     const inference::ModelInferRequest& request,
     std::list<std::string>* serialized_data,
     TRITONSERVER_InferenceRequest* inference_request,
-    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
+    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
         shm_regions_info);
 
 TRITONSERVER_Error* ResponseAllocatorHelper(
@@ -1274,13 +1274,13 @@ class InferHandler : public HandlerBase {
   // response release callback.
   struct ResponseReleasePayload final {
     State* state_;
-    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
+    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
         shm_regions_info_;
     std::shared_ptr<SharedMemoryManager> shm_manager_;
 
     ResponseReleasePayload(
         State* state,
-        std::list<
+        std::vector<
             std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>&&
             shm_regions_info,
         const std::shared_ptr<SharedMemoryManager>& shm_manager)
@@ -1291,20 +1291,20 @@ class InferHandler : public HandlerBase {
 
     ~ResponseReleasePayload()
     {
-      auto it = shm_regions_info_.begin();
-      while (it != shm_regions_info_.end()) {
-        auto shm_name = (*it)->GetName();
-        auto shm_memory_type = (*it)->GetMemoryType();
-        auto marked_for_unregistration = (*it)->IsMarkedForUnregistration();
-        it = shm_regions_info_.erase(it);
+      while (!shm_regions_info_.empty()) {
+        auto shm_name = shm_regions_info_.back()->GetName();
+        auto shm_memory_type = shm_regions_info_.back()->GetMemoryType();
+        auto marked_for_unregistration =
+            shm_regions_info_.back()->IsMarkedForUnregistration();
 
-        // Check if the shared memory info is marked for unregistration
+        shm_regions_info_.pop_back();
+
         if (marked_for_unregistration) {
           std::cerr << "============= Found shm - " << shm_name
                     << " marked for Unregistration !! ============\n";
           auto err = shm_manager_->Unregister(shm_name, shm_memory_type);
           if (err != nullptr) {
-            std::cerr << "+++++++++++++ Faild to unregister shm - " << shm_name
+            std::cerr << "+++++++++++++ Failed to unregister shm - " << shm_name
                       << " !! ++++++++++++\n";
           }
         }

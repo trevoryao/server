@@ -282,20 +282,20 @@ class HTTPAPIServer : public HTTPServer {
       }
       req_ = nullptr;
 
-      auto it = shm_regions_info_.begin();
-      while (it != shm_regions_info_.end()) {
-        auto shm_name = (*it)->GetName();
-        auto shm_memory_type = (*it)->GetMemoryType();
-        auto marked_for_unregistration = (*it)->IsMarkedForUnregistration();
-        it = shm_regions_info_.erase(it);
+      while (!shm_regions_info_.empty()) {
+        auto shm_name = shm_regions_info_.back()->GetName();
+        auto shm_memory_type = shm_regions_info_.back()->GetMemoryType();
+        auto marked_for_unregistration =
+            shm_regions_info_.back()->IsMarkedForUnregistration();
 
-        // Check if the shared memory info is marked for unregistration
+        shm_regions_info_.pop_back();
+
         if (marked_for_unregistration) {
           std::cerr << "============= Found shm - " << shm_name
                     << " marked for Unregistration !! ============\n";
           auto err = shm_manager_->Unregister(shm_name, shm_memory_type);
           if (err != nullptr) {
-            std::cerr << "+++++++++++++ Faild to unregister shm - " << shm_name
+            std::cerr << "+++++++++++++ Failed to unregister shm - " << shm_name
                       << " !! ++++++++++++\n";
           }
         }
@@ -361,9 +361,9 @@ class HTTPAPIServer : public HTTPServer {
     // Maintain shared pointers(read-only reference) to the shared memory
     // block's information for the shared memory regions used by the request.
     // These pointers will automatically increase the usage count, preventing
-    // unregistration of the shared memory. This list must be cleared when no
+    // unregistration of the shared memory. This vector must be cleared when no
     // longer needed to decrease the count and permit unregistration.
-    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
+    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
         shm_regions_info_;
 
     std::shared_ptr<SharedMemoryManager> shm_manager_;
@@ -466,7 +466,7 @@ class HTTPAPIServer : public HTTPServer {
     RequestReleasePayload(
         const std::shared_ptr<TRITONSERVER_InferenceRequest>& inference_request,
         evbuffer* buffer)
-        : inference_request_(inference_request), buffer_(buffer){};
+        : inference_request_(inference_request), buffer_(buffer) {};
 
     ~RequestReleasePayload()
     {

@@ -380,7 +380,7 @@ InferGRPCToInput(
     const inference::ModelInferRequest& request,
     std::list<std::string>* serialized_data,
     TRITONSERVER_InferenceRequest* inference_request,
-    std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
+    std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>*
         shm_regions_info)
 {
   // Verify that the batch-byte-size of each input matches the size of
@@ -909,11 +909,11 @@ ModelInferHandler::Execute(InferHandler::State* state)
   // Maintain shared pointers(read-only reference) to the shared memory block's
   // information for the shared memory regions used by the request. These
   // pointers will automatically increase the usage count, preventing
-  // unregistration of the shared memory. This list must be cleared in the
+  // unregistration of the shared memory. This vector must be cleared in the
   // `InferResponseComplete` callback (after inference) to decrease the count
-  // and permit unregistration. The list will be included in
+  // and permit unregistration. The vector will be included in
   // `response_release_payload` for the callback.
-  std::list<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
+  std::vector<std::shared_ptr<const SharedMemoryManager::SharedMemoryInfo>>
       shm_regions_info;
 
   if (err == nullptr) {
