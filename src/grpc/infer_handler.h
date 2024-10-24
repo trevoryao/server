@@ -93,7 +93,7 @@ class Barrier {
 struct RequestReleasePayload final {
   explicit RequestReleasePayload(
       const std::shared_ptr<TRITONSERVER_InferenceRequest>& inference_request)
-      : inference_request_(inference_request) {};
+      : inference_request_(inference_request){};
 
  private:
   std::shared_ptr<TRITONSERVER_InferenceRequest> inference_request_ = nullptr;
@@ -1291,12 +1291,15 @@ class InferHandler : public HandlerBase {
 
     ~ResponseReleasePayload()
     {
+      // Unregister shm regions that are waiting for the completion of an
+      // inference.
       while (!shm_regions_info_.empty()) {
         auto shm_name = shm_regions_info_.back()->name_;
         auto shm_memory_type = shm_regions_info_.back()->kind_;
         auto marked_for_unregistration =
             shm_regions_info_.back()->marked_for_unregistration_;
 
+        // Delete shared_ptr to decrement reference count
         shm_regions_info_.pop_back();
 
         if (marked_for_unregistration) {
