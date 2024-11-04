@@ -869,9 +869,10 @@ class InferHandlerState {
         }
       }
 
-      if (state->step_ != Steps::CANCELLATION_ISSUED) {
-        // The cancellation has not been issued hence the state can
-        // be released.
+      if (state->step_ != Steps::CANCELLATION_ISSUED &&
+          state->step_ != Steps::CANCELLED) {
+        // The cancellation has neither been issued nor completed,
+        // hence the state can be released.
         LOG_VERBOSE(1) << "Completing cancellation for " << name
                        << ", rpc_ok=" << rpc_ok << ", context "
                        << state->context_->unique_id_ << ", "
