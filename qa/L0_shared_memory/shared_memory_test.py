@@ -432,7 +432,8 @@ class SharedMemoryTest(SystemSharedMemoryTestBase):
     def test_python_client_leak(self):
         process = psutil.Process()
         initial_mem_usage = process.memory_info().rss / 1024**2
-        threshold = initial_mem_usage * 1.02  # 2% tolerance threshold
+        # 3% tolerance threshold. IGPU tolarances need to be higher
+        threshold = initial_mem_usage * 1.03
 
         byte_size = 4
         i = 0
